@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventario Compacto Pro</title>
+    <title>Inventario Ultra Compacto</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -12,66 +12,84 @@
             --bg: #f5f6fa;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
+        .container { max-width: 1100px; margin: 0 auto; }
 
         header {
             text-align: center;
-            padding: 20px;
+            padding: 10px;
             background: #000;
             color: white;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
 
         .controls {
             display: flex; gap: 10px; justify-content: center;
-            background: white; padding: 15px; border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;
+            background: white; padding: 10px; border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px;
         }
 
-        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn { padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-upload { background: #6c5ce7; color: white; }
         .btn-print { background: var(--accent); color: white; }
 
         .brand-section {
-            background: white; border-radius: 8px; padding: 15px;
-            margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-left: 4px solid var(--accent);
+            background: white; border-radius: 5px; padding: 8px;
+            margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-left: 3px solid var(--accent);
+            break-inside: avoid; /* Importante para no cortar marcas */
         }
 
-        .brand-title { color: var(--accent); font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #eee; margin-bottom: 8px; }
+        .brand-title { 
+            color: var(--accent); 
+            font-weight: bold; 
+            font-size: 0.85em;
+            text-transform: uppercase; 
+            border-bottom: 1px solid #eee; 
+            margin-bottom: 4px; 
+        }
 
-        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-        th { text-align: left; color: #636e72; font-size: 0.75em; text-transform: uppercase; padding: 5px; }
-        td { padding: 6px 5px; border-bottom: 1px solid #f1f2f6; }
-        .qty-badge { font-weight: bold; background: #eee; padding: 2px 8px; border-radius: 10px; }
-
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        td { padding: 3px 2px; border-bottom: 1px solid #f1f2f6; }
+        .qty-badge { font-weight: bold; color: #000; }
+        
         #fileInput { display: none; }
 
-        /* --- AJUSTES ESPECÍFICOS PARA IMPRESIÓN --- */
+        /* --- AJUSTES DE IMPRESIÓN EXTREMOS --- */
         @media print {
-            @page { size: auto; margin: 1cm; }
+            @page { 
+                size: portrait; 
+                margin: 0.5cm; /* Márgenes mínimos de impresora */
+            }
             body { background: white; padding: 0; }
-            .controls, header p { display: none; }
-            header { padding: 10px; margin-bottom: 10px; }
-            header h1 { font-size: 1.5em; margin: 0; color: black !important; }
-            
+            .controls, header p, .no-print { display: none !important; }
+            header { padding: 5px; margin-bottom: 10px; background: transparent !important; color: black !important; border: 1px solid #eee; }
+            header h1 { font-size: 1.2em; margin: 0; }
+
             #inventoryOutput {
-                column-count: 2; /* Divide en 2 columnas para ahorrar papel */
-                column-gap: 20px;
+                display: block;
+                column-count: 3; /* Dividir en 3 columnas para máximo ahorro */
+                column-gap: 10px;
+                column-fill: auto;
             }
 
             .brand-section {
-                box-shadow: none; border: 1px solid #ccc;
-                margin-bottom: 10px; padding: 8px;
-                page-break-inside: avoid; /* Evita que una marca se corte entre dos hojas */
-                break-inside: avoid;
+                border: 1px solid #eee;
+                margin-bottom: 5px;
+                padding: 5px;
+                page-break-inside: avoid;
             }
 
-            .brand-title { font-size: 1em; margin-bottom: 5px; }
-            td { padding: 3px; font-size: 0.8em; } /* Letra más chica */
-            th { padding: 3px; }
+            td { 
+                font-size: 10px; /* Tamaño de letra pequeño pero legible */
+                line-height: 1.1;
+            }
+            
+            .brand-title { font-size: 11px; margin-bottom: 2px; }
+            
+            /* Ocultar encabezados de tabla para ganar filas */
+            thead { display: none; } 
         }
     </style>
 </head>
@@ -90,7 +108,7 @@
     </div>
 
     <div id="inventoryOutput">
-        <p style="text-align:center; color: #999;">Cargue un archivo para ver las tablas...</p>
+        <p style="text-align:center; color: #999;">Seleccione un archivo para generar la vista compacta...</p>
     </div>
 </div>
 
@@ -115,16 +133,26 @@
 
         data.forEach((row, index) => {
             if (index === 0 || !row[0]) return;
-            const fullName = String(row[0]).replace('ATT-CONSIGN', '').replace('ATT', '').trim();
-            const brand = fullName.split(' ')[0];
+            // Limpieza de nombres
+            let fullName = String(row[0])
+                .replace(/ATT-CONSIGN/g, '')
+                .replace(/ATT/g, '')
+                .trim();
+            
+            const brand = fullName.split(' ')[0] || 'OTROS';
             const qty = row[1] || 0;
+            
             if (!brands[brand]) brands[brand] = [];
             brands[brand].push({ name: fullName, qty: qty });
         });
 
-        for (let brand in brands) {
+        // Ordenar marcas alfabéticamente
+        const sortedBrands = Object.keys(brands).sort();
+
+        sortedBrands.forEach(brand => {
             const section = document.createElement('div');
             section.className = 'brand-section';
+            
             let tableRows = brands[brand].map(item => `
                 <tr>
                     <td>${item.name}</td>
@@ -135,12 +163,11 @@
             section.innerHTML = `
                 <div class="brand-title">${brand}</div>
                 <table>
-                    <thead><tr><th>Modelo</th><th style="text-align:right">Cant.</th></tr></thead>
                     <tbody>${tableRows}</tbody>
                 </table>
             `;
             output.appendChild(section);
-        }
+        });
     }
 </script>
 
